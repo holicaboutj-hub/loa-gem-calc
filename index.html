@@ -1280,12 +1280,11 @@
             : 'text-slate-700 dark:text-slate-200 font-semibold';
 
           return `
-            <div class="flex flex-col items-center gap-1.5" title="슬롯 #${slot ? slot.index : '-'} · ${lv > 0 ? `${subtitleLine} (${slot.units.toLocaleString()}단위)` : '미배치'}">
+            <div class="flex flex-col items-center justify-center" title="슬롯 #${slot ? slot.index : '-'} · ${lv > 0 ? `${subtitleLine} (${slot.units.toLocaleString()}단위)` : '미배치'}">
               <div class="w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-full ${socketStyle} border-2 shadow-2xs flex flex-col items-center justify-center leading-tight px-1 text-center transition">
                 <span class="text-[11px] sm:text-xs font-extrabold">${levelLine}</span>
                 ${!isStardust && gemName ? `<span class="text-[11px] sm:text-xs font-bold tracking-tight mt-0.5">${gemName}</span>` : ''}
               </div>
-              <div class="text-xs tracking-tight ${labelColor}">${subtitleLine}</div>
             </div>
           `;
         };
