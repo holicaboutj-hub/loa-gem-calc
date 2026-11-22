@@ -1,0 +1,1706 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>로아 보석 &amp; 성휘 계산기</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'Apple SD Gothic Neo', 'Malgun Gothic', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              DEFAULT: '#4f46e5',
+              light: '#818cf8',
+              dark: '#3730a3',
+            },
+          },
+        },
+      },
+    };
+  </script>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-200">
+  <div class="max-w-6xl mx-auto px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+    <!-- 상단 헤더 -->
+    <header class="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl px-5 py-4 shadow-xs">
+      <div class="flex flex-wrap items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-brand text-white flex items-center justify-center shadow-xs">
+          <i class="fa-regular fa-gem text-lg"></i>
+        </div>
+        <div>
+          <div class="flex flex-wrap items-center gap-2">
+            <h1 class="text-lg sm:text-xl font-extrabold tracking-tight">로아 보석 &amp; 성휘 계산기</h1>
+            <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-indigo-50 text-brand dark:bg-indigo-950/70 dark:text-brand-light">
+              11슬롯 유지 · 최상위 성휘 최적화
+            </span>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            4티어 보석 환산(10Lv = 8Lv×9, 9Lv = 8Lv×3, 3T 10Lv 멸화/홍염 = 4T 8Lv) 및 잔여 보석 계산
+          </p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button id="sampleDataBtn" type="button" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-brand dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 dark:text-brand-light transition cursor-pointer">
+          <i class="fa-solid fa-flask mr-1.5"></i>샘플 데이터 테스트
+        </button>
+        <button id="themeToggleBtn" type="button" aria-label="다크 모드 전환" class="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition cursor-pointer">
+          <i id="themeIcon" class="fa-regular fa-moon text-sm"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- 안내 / 알림 배너 -->
+    <div id="statusBanner" class="hidden items-center justify-between gap-3 rounded-2xl px-4 py-3 text-xs font-medium border bg-indigo-50/90 border-indigo-200 text-indigo-900 dark:bg-indigo-950/50 dark:border-indigo-800/70 dark:text-indigo-200">
+      <div class="flex items-center gap-2.5">
+        <i class="fa-solid fa-circle-info text-brand dark:text-brand-light"></i>
+        <span id="statusBannerText"></span>
+      </div>
+      <button id="closeBannerBtn" type="button" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 cursor-pointer">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <!-- API 조회 입력 카드 -->
+    <section class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 class="text-base font-bold">원정대 장착 보석 불러오기</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            대표 캐릭터와 동일 서버 아이템 레벨 상위 6개 캐릭터의 보석을 조회하고 계산합니다. (7레벨 이하 광휘 제외)
+          </p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+        <div class="md:col-span-6 space-y-1.5">
+          <div class="flex items-center justify-between text-xs">
+            <label for="apiKeyInput" class="font-semibold text-slate-700 dark:text-slate-300">로스트아크 Open API 키</label>
+            <div class="flex items-center gap-3">
+              <a href="https://developer-lostark.game.onstove.com/" target="_blank" rel="noopener noreferrer" class="text-brand dark:text-brand-light hover:underline font-semibold inline-flex items-center gap-1">
+                <span>API 발급 페이지</span>
+                <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+              </a>
+              <button id="clearApiKeyBtn" type="button" class="text-rose-600 hover:underline font-medium cursor-pointer">저장된 키 삭제</button>
+            </div>
+          </div>
+          <div class="relative">
+            <input id="apiKeyInput" type="password" placeholder="" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 px-3.5 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-brand" />
+            <button id="toggleApiKeyBtn" type="button" aria-label="API 키 표시 전환" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
+              <i id="toggleApiKeyIcon" class="fa-regular fa-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="md:col-span-4 space-y-1.5">
+          <label for="characterNameInput" class="block text-xs font-semibold text-slate-700 dark:text-slate-300">대표 캐릭터명</label>
+          <input id="characterNameInput" type="text" placeholder="예: 모코코" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand" />
+        </div>
+
+        <div class="md:col-span-2 flex items-end">
+          <button id="fetchRosterBtn" type="button" class="w-full rounded-xl bg-brand hover:bg-brand-dark text-white font-bold text-sm py-2.5 px-4 shadow-xs transition flex items-center justify-center gap-2 cursor-pointer">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <span>조회 및 계산</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-2 pt-1 text-[11px]">
+        <span class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium">① 11슬롯 유지 · 최저 8레벨 세팅</span>
+        <span class="px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 font-medium">② 성휘 최상위 (4T 10Lv × 3 = 1Lv 성휘)</span>
+        <span class="px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-800 dark:text-purple-300 font-medium">③ 3T 10Lv 멸화/홍염 → 4T 8Lv 치환</span>
+        <span class="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 font-medium">④ 7레벨 이하 광휘 제외 · 8레벨 광휘(거불)→7레벨(거가) 치환</span>
+      </div>
+    </section>
+
+    <!-- 상단 요약 카드 4개 (한 줄 배치) -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="rounded-2xl bg-gradient-to-br from-brand to-indigo-700 text-white p-5 shadow-xs flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold text-indigo-100">11칸 세팅 완성 성휘</span>
+          <span class="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center">
+            <i class="fa-solid fa-star text-xs"></i>
+          </span>
+        </div>
+        <div class="my-2">
+          <div id="statCompletedStardust" class="text-2xl font-extrabold">완성된 성휘 0개</div>
+        </div>
+        <div>
+          <div class="flex items-center justify-between text-[11px] text-indigo-100 mb-1">
+            <span>다음 성휘 목표 진행도</span>
+            <span id="statStardustProgressText">0.0%</span>
+          </div>
+          <div class="w-full h-2 rounded-full bg-white/20 overflow-hidden">
+            <div id="statStardustProgressBar" class="h-full bg-amber-300 rounded-full transition-all duration-300" style="width: 0%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 shadow-xs flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">10레벨 환산 총합</span>
+          <span class="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-500 flex items-center justify-center">
+            <i class="fa-solid fa-crown text-xs"></i>
+          </span>
+        </div>
+        <div class="my-2">
+          <span id="statTotalLv10Equiv" class="text-2xl font-extrabold text-amber-600 dark:text-amber-400">0.00</span>
+          <span class="text-sm font-bold text-slate-600 dark:text-slate-300 ml-1">개</span>
+        </div>
+        <p id="statTotalUnitsSub" class="text-xs text-slate-500 dark:text-slate-400">유효 4티어 환산 0개 (총 0단위)</p>
+      </div>
+
+      <div class="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 shadow-xs flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">치환 반영 보석</span>
+          <span class="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+            <i class="fa-solid fa-arrows-rotate text-xs"></i>
+          </span>
+        </div>
+        <div class="my-2">
+          <span id="statConvertedCount" class="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">0</span>
+          <span class="text-sm font-bold text-slate-600 dark:text-slate-300 ml-1">개</span>
+        </div>
+        <p id="statConvertedSub" class="text-xs text-slate-500 dark:text-slate-400">3T 치환 0개 · 8광휘→7레벨 0개</p>
+      </div>
+
+      <div class="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 shadow-xs flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">다음 성휘까지 필요 보석</span>
+          <span class="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-brand dark:text-brand-light flex items-center justify-center">
+            <i class="fa-solid fa-bullseye text-xs"></i>
+          </span>
+        </div>
+        <div class="my-2">
+          <span id="statNextStardustNeed" class="text-2xl font-extrabold text-slate-900 dark:text-white">10레벨 3.00개</span>
+        </div>
+        <p id="statNextStardustSub" class="text-xs text-slate-500 dark:text-slate-400">8레벨(3T 10Lv) 약 27.00개 필요</p>
+      </div>
+    </section>
+
+    <!-- 11칸 슬롯 결과 및 전략 비교 -->
+    <section class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-5">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-base font-bold">11칸 보석 슬롯 최적 세팅 결과</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            11개 슬롯을 채운 뒤 선택한 전략에 따라 배치하고, 남은 잔여 보석을 별도로 계산합니다.
+          </p>
+        </div>
+        <div class="w-full flex flex-wrap items-center justify-start gap-2">
+          <div id="slotSummaryBadge" class="px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-brand dark:text-brand-light text-xs font-bold">
+            10레벨 0개 + 9레벨 0개 + 8레벨 0개 (총 11칸)
+          </div>
+          <div id="remainingGemBadge" class="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/70 text-xs font-bold">
+            잔여 보석: 8레벨 0.00개 (10레벨 0.00개 / 0단위)
+          </div>
+        </div>
+      </div>
+
+      <!-- 인게임 11칸 슬롯 배치 (상단 4 · 중단 3 · 하단 4, 이미지 미사용) -->
+      <div class="rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-gradient-to-b from-slate-100 via-white to-slate-100 dark:from-slate-800/90 dark:via-slate-900 dark:to-slate-800/90 text-slate-800 dark:text-slate-100 p-4 sm:p-6 overflow-x-auto">
+        <div id="elevenSlotGrid" class="min-w-[460px] max-w-2xl mx-auto flex flex-col items-center gap-4 sm:gap-5 select-none"></div>
+      </div>
+    </section>
+
+    <!-- 탭 전환 영역 -->
+    <section class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-5">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 dark:border-slate-800 pb-3">
+        <div class="flex gap-2">
+          <button id="tabRosterBtn" type="button" class="px-4 py-2 rounded-xl text-xs font-bold bg-brand text-white transition cursor-pointer">
+            원정대 보유 보석 현황
+          </button>
+          <button id="tabSimBtn" type="button" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer">
+            수동 계산기 / 시뮬레이션
+          </button>
+        </div>
+
+        <button id="copyResultBtn" type="button" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition cursor-pointer">
+          <i class="fa-regular fa-copy mr-1"></i>계산 결과 복사
+        </button>
+      </div>
+
+      <!-- 탭 1: 원정대 현황 -->
+      <div id="rosterPanel" class="space-y-5">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
+                <th class="py-2.5 px-3 font-semibold">유효 4티어 레벨</th>
+                <th class="py-2.5 px-3 font-semibold text-right">최종 유효 합계</th>
+                <th class="py-2.5 px-3 font-semibold text-right text-rose-600 dark:text-rose-400">겁화</th>
+                <th class="py-2.5 px-3 font-semibold text-right text-sky-600 dark:text-sky-400">작열</th>
+                <th class="py-2.5 px-3 font-semibold text-right text-amber-600 dark:text-amber-400">광휘</th>
+                <th class="py-2.5 px-3 font-semibold text-right text-purple-600 dark:text-purple-400">3티어 치환 유입</th>
+                <th class="py-2.5 px-3 font-semibold text-right">10레벨 환산 기여도</th>
+              </tr>
+            </thead>
+            <tbody id="gemBreakdownTableBody" class="divide-y divide-slate-100 dark:divide-slate-800/70"></tbody>
+          </table>
+        </div>
+
+        <div class="space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h3 class="text-sm font-bold">캐릭터별 보석 및 8레벨 광휘(거불)→7레벨(거가) 치환 설정</h3>
+            <div id="extraCharacterAddBar" class="hidden flex-wrap items-center gap-2">
+              <select id="extraCharacterSelect" aria-label="7번째 이후 원정대 캐릭터 선택" class="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-xs font-semibold"></select>
+              <button id="addExtraCharacterBtn" type="button" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-brand hover:bg-brand-dark text-white shadow-2xs transition cursor-pointer">
+                <i class="fa-solid fa-user-plus mr-1"></i>캐릭터 추가
+              </button>
+            </div>
+          </div>
+          <div id="characterListContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+        </div>
+
+        <!-- 인벤토리 수동 짤짤이 보석 추가 -->
+        <div class="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/30 p-4 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="text-sm font-bold">인벤토리 수동 보석 추가 (짤짤이 보석 반영)</h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400">
+                창고·인벤토리에 보관 중인 짤짤이 보석을 추가하면 원정대 보유 현황, 11칸 슬롯 및 잔여 보석 계산에 합산됩니다.
+              </p>
+            </div>
+            <button id="clearManualGemsBtn" type="button" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer">
+              수동 보석 전체 삭제
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
+            <label class="sm:col-span-3 space-y-1 text-xs">
+              <span class="font-semibold text-slate-600 dark:text-slate-300">보석 종류</span>
+              <select id="manualGemKindSelect" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs font-semibold">
+                <option value="blazing">4T 겁화</option>
+                <option value="annihilation">4T 작열</option>
+                <option value="stardust">4T 광휘</option>
+                <option value="t3_blazing">3T 10Lv 멸화 (→4T 8Lv)</option>
+                <option value="t3_annihilation">3T 10Lv 홍염 (→4T 8Lv)</option>
+              </select>
+            </label>
+
+            <label class="sm:col-span-3 space-y-1 text-xs">
+              <span class="font-semibold text-slate-600 dark:text-slate-300">레벨</span>
+              <select id="manualGemLevelSelect" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs font-semibold">
+                <option value="10">10레벨</option>
+                <option value="9">9레벨</option>
+                <option value="8" selected>8레벨</option>
+                <option value="7">7레벨</option>
+                <option value="6">6레벨</option>
+                <option value="5">5레벨</option>
+                <option value="4">4레벨</option>
+                <option value="3">3레벨</option>
+                <option value="2">2레벨</option>
+                <option value="1">1레벨</option>
+              </select>
+            </label>
+
+            <label class="sm:col-span-3 space-y-1 text-xs">
+              <span class="font-semibold text-slate-600 dark:text-slate-300">개수</span>
+              <input id="manualGemCountInput" type="number" min="1" value="1" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs font-bold" />
+            </label>
+
+            <div class="sm:col-span-3">
+              <button id="addManualGemBtn" type="button" class="w-full rounded-xl bg-brand hover:bg-brand-dark text-white font-bold text-xs py-2.5 px-3 shadow-2xs transition cursor-pointer">
+                <i class="fa-solid fa-plus mr-1"></i>인벤 보석 추가
+              </button>
+            </div>
+          </div>
+
+          <div id="manualGemsList" class="flex flex-wrap gap-2 pt-1"></div>
+        </div>
+      </div>
+
+      <!-- 탭 2: 수동 시뮬레이션 -->
+      <div id="simPanel" class="hidden space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            원하는 보석 개수를 직접 입력해 11칸 배치 및 잔여 보석 변화를 시뮬레이션해 보세요.
+          </p>
+          <div class="flex gap-2">
+            <button id="loadFromApiToSimBtn" type="button" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-brand dark:bg-indigo-950/60 dark:text-brand-light transition cursor-pointer">
+              현재 조회값 불러오기
+            </button>
+            <button id="resetSimBtn" type="button" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 transition cursor-pointer">
+              초기화
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <label class="space-y-1 text-xs">
+            <span class="font-semibold text-slate-600 dark:text-slate-300">4T 10레벨 보석</span>
+            <input id="simLv10Input" type="number" min="0" value="2" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm font-bold" />
+          </label>
+          <label class="space-y-1 text-xs">
+            <span class="font-semibold text-slate-600 dark:text-slate-300">4T 9레벨 보석</span>
+            <input id="simLv9Input" type="number" min="0" value="9" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm font-bold" />
+          </label>
+          <label class="space-y-1 text-xs">
+            <span class="font-semibold text-slate-600 dark:text-slate-300">4T 8레벨 보석</span>
+            <input id="simLv8Input" type="number" min="0" value="32" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm font-bold" />
+          </label>
+          <label class="space-y-1 text-xs">
+            <span class="font-semibold text-slate-600 dark:text-slate-300">3T 10Lv 멸화/홍염 치환</span>
+            <input id="simT3Lv10Input" type="number" min="0" value="1" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm font-bold" />
+          </label>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    /**
+     * 보석 가치 단위 상수 (4T 7레벨 = 729단위, 8레벨 = 2,187단위, 9레벨 = 6,561단위, 10레벨 = 19,683단위)
+     */
+    const UNIT_BY_LEVEL = {
+      10: 19683,
+      9: 6561,
+      8: 2187,
+      7: 729,
+      6: 243,
+      5: 81,
+      4: 27,
+      3: 9,
+      2: 3,
+      1: 1,
+    };
+    const STARDUST_COST_UNITS = UNIT_BY_LEVEL[10] * 3; // 성휘 1개 = 4T 10레벨 3개 분량
+
+    const STORAGE_KEY_API = 'loa_gem_calc_api_key_v1';
+    const STORAGE_KEY_CHAR = 'loa_gem_calc_char_name_v1';
+
+    const state = {
+      strategy: 'lv8_first',
+      activeTab: 'roster',
+      simMode: false,
+      simValues: { lv10: 2, lv9: 9, lv8: 32, t3Lv10: 1 },
+      rosterMeta: null,
+      characters: [],
+      extraCandidates: [],
+      manualGems: [],
+    };
+
+    const els = {
+      sampleDataBtn: document.getElementById('sampleDataBtn'),
+      themeToggleBtn: document.getElementById('themeToggleBtn'),
+      themeIcon: document.getElementById('themeIcon'),
+      statusBanner: document.getElementById('statusBanner'),
+      statusBannerText: document.getElementById('statusBannerText'),
+      closeBannerBtn: document.getElementById('closeBannerBtn'),
+      apiKeyInput: document.getElementById('apiKeyInput'),
+      clearApiKeyBtn: document.getElementById('clearApiKeyBtn'),
+      toggleApiKeyBtn: document.getElementById('toggleApiKeyBtn'),
+      toggleApiKeyIcon: document.getElementById('toggleApiKeyIcon'),
+      characterNameInput: document.getElementById('characterNameInput'),
+      fetchRosterBtn: document.getElementById('fetchRosterBtn'),
+      statCompletedStardust: document.getElementById('statCompletedStardust'),
+      statStardustProgressText: document.getElementById('statStardustProgressText'),
+      statStardustProgressBar: document.getElementById('statStardustProgressBar'),
+      statTotalLv10Equiv: document.getElementById('statTotalLv10Equiv'),
+      statTotalUnitsSub: document.getElementById('statTotalUnitsSub'),
+      statConvertedCount: document.getElementById('statConvertedCount'),
+      statConvertedSub: document.getElementById('statConvertedSub'),
+      statNextStardustNeed: document.getElementById('statNextStardustNeed'),
+      statNextStardustSub: document.getElementById('statNextStardustSub'),
+      slotSummaryBadge: document.getElementById('slotSummaryBadge'),
+      elevenSlotGrid: document.getElementById('elevenSlotGrid'),
+      nextGoalLabel: document.getElementById('nextGoalLabel'),
+      needLv10Badge: document.getElementById('needLv10Badge'),
+      needLv8Badge: document.getElementById('needLv8Badge'),
+      remainingGemBadge: document.getElementById('remainingGemBadge'),
+      tabRosterBtn: document.getElementById('tabRosterBtn'),
+      tabSimBtn: document.getElementById('tabSimBtn'),
+      copyResultBtn: document.getElementById('copyResultBtn'),
+      rosterPanel: document.getElementById('rosterPanel'),
+      simPanel: document.getElementById('simPanel'),
+      gemBreakdownTableBody: document.getElementById('gemBreakdownTableBody'),
+      characterListContainer: document.getElementById('characterListContainer'),
+      extraCharacterAddBar: document.getElementById('extraCharacterAddBar'),
+      extraCharacterSelect: document.getElementById('extraCharacterSelect'),
+      addExtraCharacterBtn: document.getElementById('addExtraCharacterBtn'),
+      manualGemKindSelect: document.getElementById('manualGemKindSelect'),
+      manualGemLevelSelect: document.getElementById('manualGemLevelSelect'),
+      manualGemCountInput: document.getElementById('manualGemCountInput'),
+      addManualGemBtn: document.getElementById('addManualGemBtn'),
+      clearManualGemsBtn: document.getElementById('clearManualGemsBtn'),
+      manualGemsList: document.getElementById('manualGemsList'),
+      loadFromApiToSimBtn: document.getElementById('loadFromApiToSimBtn'),
+      resetSimBtn: document.getElementById('resetSimBtn'),
+      simLv10Input: document.getElementById('simLv10Input'),
+      simLv9Input: document.getElementById('simLv9Input'),
+      simLv8Input: document.getElementById('simLv8Input'),
+      simT3Lv10Input: document.getElementById('simT3Lv10Input'),
+    };
+
+    /**
+     * 상단 안내 배너 표시 함수
+     */
+    function showBanner(msg) {
+      if (!els.statusBanner || !els.statusBannerText) return;
+      els.statusBannerText.textContent = msg;
+      els.statusBanner.classList.remove('hidden');
+      els.statusBanner.classList.add('flex');
+    }
+
+    /**
+     * 개별 보석 문자열/객체를 파싱합니다.
+     * 규칙: 7레벨 이하 광휘 보석은 제외, 3티어 10레벨 멸화/홍염은 4티어 8레벨로 치환합니다.
+     */
+    function parseGem(rawGem) {
+      const name = String(rawGem?.Name || rawGem?.name || '').trim();
+      const tier = Number(rawGem?.Tier ?? rawGem?.tier ?? 4);
+      const levelMatch = name.match(/(\d+)\s*레벨/);
+      const level = levelMatch ? Number(levelMatch[1]) : Number(rawGem?.Level || rawGem?.level || 0);
+
+      const isStardustGem = name.includes('광휘');
+      const isBlazing = name.includes('겁화');
+      const isAnnihilation = name.includes('작열');
+      const isT3Blazing = name.includes('멸화');
+      const isT3Annihilation = name.includes('홍염');
+
+      // 7레벨 이하 광휘 제외
+      if (isStardustGem && level <= 7) {
+        return {
+          name,
+          tier,
+          rawLevel: level,
+          effectiveTier: tier,
+          effectiveLevel: level,
+          category: 'stardust',
+          sourceKind: 'stardust',
+          isEligible: false,
+          isT3Converted: false,
+          units: 0,
+        };
+      }
+
+      let effectiveTier = tier;
+      let effectiveLevel = level;
+      let isT3Converted = false;
+
+      // 3티어 10레벨 멸화/홍염 -> 4티어 8레벨 치환
+      if ((tier === 3 || isT3Blazing || isT3Annihilation) && level === 10 && (isT3Blazing || isT3Annihilation)) {
+        effectiveTier = 4;
+        effectiveLevel = 8;
+        isT3Converted = true;
+      }
+
+      const category = isStardustGem
+        ? 'stardust'
+        : isBlazing
+        ? 'blazing'
+        : isAnnihilation
+        ? 'annihilation'
+        : isT3Blazing
+        ? 't3_blazing'
+        : isT3Annihilation
+        ? 't3_annihilation'
+        : 'other';
+
+      const sourceKind = isStardustGem
+        ? 'stardust'
+        : isBlazing || isT3Blazing
+        ? 'blazing'
+        : isAnnihilation || isT3Annihilation
+        ? 'annihilation'
+        : 'other';
+
+      const units = effectiveTier === 4 && UNIT_BY_LEVEL[effectiveLevel] ? UNIT_BY_LEVEL[effectiveLevel] : 0;
+      const isEligible = units > 0;
+
+      return {
+        name,
+        tier,
+        rawLevel: level,
+        effectiveTier,
+        effectiveLevel,
+        category,
+        sourceKind,
+        isEligible,
+        isT3Converted,
+        units,
+      };
+    }
+
+    /**
+     * 샘플 데이터 생성
+     */
+    function loadSampleData() {
+      state.simMode = false;
+      state.rosterMeta = { baseChar: '지햇살', server: '루페온', totalSiblings: 12, filteredCount: 4 };
+      state.extraCandidates = [
+        { CharacterName: '지모코', ServerName: '루페온', ItemAvgLevel: '1,665.00' },
+        { CharacterName: '지별빛', ServerName: '루페온', ItemAvgLevel: '1,650.00' },
+      ];
+      state.characters = [
+        {
+          name: '지햇살',
+          server: '루페온',
+          itemAvgLevel: 1710.0,
+          convert8To7Count: 0,
+          gems: [
+            parseGem({ Name: '10레벨 겁화의 보석', Tier: 4 }),
+            parseGem({ Name: '10레벨 겁화의 보석', Tier: 4 }),
+            ...Array.from({ length: 4 }, () => parseGem({ Name: '9레벨 겁화의 보석', Tier: 4 })),
+            ...Array.from({ length: 5 }, () => parseGem({ Name: '9레벨 작열의 보석', Tier: 4 })),
+          ],
+        },
+        {
+          name: '지구름',
+          server: '루페온',
+          itemAvgLevel: 1690.0,
+          convert8To7Count: 0,
+          gems: [
+            ...Array.from({ length: 3 }, () => parseGem({ Name: '8레벨 겁화의 보석', Tier: 4 })),
+            ...Array.from({ length: 4 }, () => parseGem({ Name: '8레벨 작열의 보석', Tier: 4 })),
+            ...Array.from({ length: 4 }, () => parseGem({ Name: '8레벨 광휘의 보석', Tier: 4 })),
+          ],
+        },
+        {
+          name: '지타마',
+          server: '루페온',
+          itemAvgLevel: 1685.0,
+          convert8To7Count: 0,
+          gems: [
+            ...Array.from({ length: 3 }, () => parseGem({ Name: '8레벨 겁화의 보석', Tier: 4 })),
+            ...Array.from({ length: 4 }, () => parseGem({ Name: '8레벨 작열의 보석', Tier: 4 })),
+            ...Array.from({ length: 3 }, () => parseGem({ Name: '8레벨 광휘의 보석', Tier: 4 })),
+            parseGem({ Name: '10레벨 멸화의 보석', Tier: 3 }),
+          ],
+        },
+        {
+          name: '지묘선',
+          server: '루페온',
+          itemAvgLevel: 1680.0,
+          convert8To7Count: 0,
+          gems: [
+            ...Array.from({ length: 3 }, () => parseGem({ Name: '8레벨 겁화의 보석', Tier: 4 })),
+            ...Array.from({ length: 4 }, () => parseGem({ Name: '8레벨 작열의 보석', Tier: 4 })),
+            ...Array.from({ length: 4 }, () => parseGem({ Name: '8레벨 광휘의 보석', Tier: 4 })),
+          ],
+        },
+      ];
+      showBanner('샘플 데이터(지햇살·지구름·지타마·지묘선)가 적용되었습니다.');
+      recalculateAndRender();
+    }
+
+    /**
+     * 로스트아크 Open API 조회 (동일 서버 아이템 레벨 상위 6캐릭터)
+     */
+    async function fetchRosterFromApi() {
+      const rawKey = (els.apiKeyInput?.value || '').trim();
+      const charName = (els.characterNameInput?.value || '').trim();
+
+      if (!rawKey) {
+        showBanner('로스트아크 Open API 키를 입력해 주세요.');
+        return;
+      }
+      if (!charName) {
+        showBanner('대표 캐릭터명을 입력해 주세요.');
+        return;
+      }
+
+      const authHeader = rawKey.toLowerCase().startsWith('bearer ') ? rawKey : `Bearer ${rawKey}`;
+      localStorage.setItem(STORAGE_KEY_API, rawKey);
+      localStorage.setItem(STORAGE_KEY_CHAR, charName);
+
+      els.fetchRosterBtn.disabled = true;
+      els.fetchRosterBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>조회 중...</span>';
+
+      try {
+        const encodedName = encodeURIComponent(charName);
+        const siblingsRes = await fetch(`https://developer-lostark.game.onstove.com/characters/${encodedName}/siblings`, {
+          headers: { Authorization: authHeader, accept: 'application/json' },
+        });
+        if (!siblingsRes.ok) {
+          if (siblingsRes.status === 401 || siblingsRes.status === 403) {
+            throw new Error('API 키가 올바르지 않거나 만료되었습니다. Open API 키를 다시 확인해 주세요.');
+          }
+          if (siblingsRes.status === 404) {
+            throw new Error('해당 캐릭터명을 찾을 수 없습니다. 캐릭터명을 다시 확인해 주세요.');
+          }
+          if (siblingsRes.status === 429) {
+            throw new Error('API 요청 횟수 제한을 초과했습니다. 잠시 후 다시 시도해 주세요.');
+          }
+          throw new Error(`원정대 정보를 불러오지 못했습니다. (오류 코드: ${siblingsRes.status})`);
+        }
+        const siblings = await siblingsRes.json();
+        if (!Array.isArray(siblings) || siblings.length === 0) {
+          throw new Error('원정대 캐릭터 목록을 찾을 수 없습니다.');
+        }
+
+        const baseChar = siblings.find((c) => c.CharacterName === charName) || siblings[0];
+        const targetServer = baseChar.ServerName;
+
+        const parseAvg = (val) => Number(String(val || '0').replace(/,/g, '')) || 0;
+        const sortedSameServer = siblings
+          .filter((c) => c.ServerName === targetServer)
+          .sort((a, b) => parseAvg(b.ItemAvgLevel) - parseAvg(a.ItemAvgLevel));
+        const sameServerTop6 = sortedSameServer.slice(0, 6);
+        const remainingSameServer = sortedSameServer.slice(6);
+
+        const gemResults = await Promise.all(
+          sameServerTop6.map(async (member) => {
+            try {
+              const res = await fetch(
+                `https://developer-lostark.game.onstove.com/armories/characters/${encodeURIComponent(member.CharacterName)}/gems`,
+                { headers: { Authorization: authHeader, accept: 'application/json' } }
+              );
+              if (!res.ok) return { ...member, gems: [] };
+              const data = await res.json();
+              const rawGems = Array.isArray(data?.Gems) ? data.Gems : [];
+              return {
+                name: member.CharacterName,
+                server: member.ServerName,
+                itemAvgLevel: parseAvg(member.ItemAvgLevel),
+                convert8To7Count: 0,
+                gems: rawGems.map(parseGem),
+              };
+            } catch (_) {
+              return {
+                name: member.CharacterName,
+                server: member.ServerName,
+                itemAvgLevel: parseAvg(member.ItemAvgLevel),
+                convert8To7Count: 0,
+                gems: [],
+              };
+            }
+          })
+        );
+
+        state.simMode = false;
+        state.rosterMeta = {
+          baseChar: charName,
+          server: targetServer,
+          totalSiblings: siblings.length,
+          filteredCount: gemResults.length,
+        };
+        state.characters = gemResults;
+        state.extraCandidates = remainingSameServer;
+        showBanner(`${charName} 기준 [${targetServer}] 서버 아이템 레벨 상위 ${gemResults.length}개 캐릭터의 보석을 불러왔습니다.`);
+        recalculateAndRender();
+      } catch (err) {
+        const rawMsg = String(err?.message || '');
+        const isNetworkErr =
+          err instanceof TypeError ||
+          rawMsg.toLowerCase().includes('failed to fetch') ||
+          rawMsg.toLowerCase().includes('network');
+        const friendlyMsg = isNetworkErr
+          ? '네트워크 연결 또는 API 서버 응답에 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.'
+          : rawMsg || 'API 조회 중 오류가 발생했습니다.';
+        showBanner(friendlyMsg);
+      } finally {
+        els.fetchRosterBtn.disabled = false;
+        els.fetchRosterBtn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i><span>조회 및 계산</span>';
+      }
+    }
+
+    /**
+     * 독립적인 잔여 보석 및 가치 보존 검증 함수
+     * - 전체 보석 가치 - 11칸 슬롯 사용 보석 가치 == 잔여 보석 풀의 총 가치 일치 여부 검증
+     * - 합성 전후 총 가치 단위 일치 여부 검증
+     * - 11칸 슬롯 배치 가치, 잔여 보석 레벨별 개수, 8레벨 환산 개수, 10레벨 환산 개수 검증
+     */
+    function verifyRemainingGemCalculation({
+      totalUnits,
+      preSynthesisRemainingUnits,
+      slotLevels,
+      remainingPool,
+      remainingUnitsAfterStrategy,
+      remainingLv8Equiv,
+      remainingLv10Equiv,
+    }) {
+      const slotUsedUnits = slotLevels.reduce((sum, lv) => sum + (lv > 0 ? UNIT_BY_LEVEL[lv] || 0 : 0), 0);
+      const expectedRemainingUnits = totalUnits - slotUsedUnits;
+
+      let poolActualUnits = 0;
+      const levelCounts = {};
+      for (let lv = 1; lv <= 10; lv++) {
+        const cnt = Math.max(0, Number(remainingPool?.[lv]) || 0);
+        levelCounts[lv] = cnt;
+        poolActualUnits += cnt * (UNIT_BY_LEVEL[lv] || 0);
+      }
+
+      const expectedLv8Equiv = expectedRemainingUnits / UNIT_BY_LEVEL[8];
+      const expectedLv10Equiv = expectedRemainingUnits / UNIT_BY_LEVEL[10];
+
+      const isValueConservationValid =
+        totalUnits === slotUsedUnits + preSynthesisRemainingUnits &&
+        preSynthesisRemainingUnits === poolActualUnits &&
+        poolActualUnits === remainingUnitsAfterStrategy &&
+        remainingUnitsAfterStrategy === expectedRemainingUnits;
+
+      const isEquivValid =
+        Math.abs(remainingLv8Equiv - expectedLv8Equiv) < 1e-9 &&
+        Math.abs(remainingLv10Equiv - expectedLv10Equiv) < 1e-9;
+
+      return {
+        isValid: isValueConservationValid && isEquivValid,
+        totalUnits,
+        slotUsedUnits,
+        expectedRemainingUnits,
+        poolActualUnits,
+        remainingUnitsAfterStrategy,
+        levelCounts,
+        remainingLv8Equiv,
+        remainingLv10Equiv,
+      };
+    }
+
+    /**
+     * 성휘(상위 보석)를 11칸 슬롯에 배치할 때 가장 낮은 레벨의 슬롯부터 교체합니다.
+     * 슬롯 총 개수(11칸)는 항상 유지하며, 배치되지 못한 성휘는 잔여 성휘 풀로 남깁니다.
+     */
+    function placeStardustIntoLowestSlots(slotLevels, slotMeta, remainingStardustCount) {
+      let leftoverStardust = Math.max(0, Number(remainingStardustCount) || 0);
+      let equippedStardustCount = 0;
+
+      while (leftoverStardust > 0) {
+        // 슬롯 중 성휘가 아니면서 가장 낮은 레벨의 슬롯 인덱스 찾기
+        let lowestIdx = -1;
+        let lowestLv = Infinity;
+        for (let i = 0; i < slotLevels.length; i++) {
+          if (slotMeta[i]?.isStardust) continue;
+          const lv = slotLevels[i] || 0;
+          if (lv < lowestLv) {
+            lowestLv = lv;
+            lowestIdx = i;
+          }
+        }
+
+        if (lowestIdx === -1) break;
+
+        // 기존 낮은 레벨 보석(lv > 0)을 교체할 때는 해당 보석을 잔여 풀로 돌려보내 전체 보석 수와 가치를 보존
+        const replacedLv = slotLevels[lowestIdx] || 0;
+        const replacedMeta = slotMeta[lowestIdx] || { gemName: '', isStardust: false };
+
+        slotLevels[lowestIdx] = 10;
+        slotMeta[lowestIdx] = { gemName: '성휘', isStardust: true };
+        leftoverStardust -= 1;
+        equippedStardustCount += 1;
+
+        if (replacedLv > 0) {
+          slotMeta[lowestIdx].replacedGem = { level: replacedLv, meta: replacedMeta };
+        }
+      }
+
+      return {
+        equippedStardustCount,
+        remainingStardustCount: leftoverStardust,
+      };
+    }
+
+    /**
+     * 현재 상태(실제/샘플 또는 수동 시뮬레이션)로부터 총 단위 및 레벨별 집계를 계산합니다.
+     */
+    function computeMetrics() {
+      const detailCounts = {};
+      for (let lv = 1; lv <= 10; lv++) {
+        detailCounts[lv] = {
+          level: lv,
+          blazing: 0,
+          annihilation: 0,
+          stardust: 0,
+          t3Converted: 0,
+          total: 0,
+        };
+      }
+
+      let totalUnits = 0;
+      let t3ConvertedCount = 0;
+      let converted8To7Count = 0;
+
+      if (state.simMode) {
+        const v10 = Math.max(0, Number(state.simValues.lv10) || 0);
+        const v9 = Math.max(0, Number(state.simValues.lv9) || 0);
+        const v8 = Math.max(0, Number(state.simValues.lv8) || 0);
+        const vT3 = Math.max(0, Number(state.simValues.t3Lv10) || 0);
+
+        detailCounts[10].blazing = v10;
+        detailCounts[10].total = v10;
+
+        detailCounts[9].blazing = v9;
+        detailCounts[9].total = v9;
+
+        detailCounts[8].blazing = v8;
+        detailCounts[8].t3Converted = vT3;
+        detailCounts[8].total = v8 + vT3;
+
+        t3ConvertedCount = vT3;
+        totalUnits = v10 * UNIT_BY_LEVEL[10] + v9 * UNIT_BY_LEVEL[9] + (v8 + vT3) * UNIT_BY_LEVEL[8];
+      } else {
+        state.characters.forEach((char) => {
+          const eligibleLv8Stardust = char.gems.filter(
+            (g) => g.isEligible && !g.isT3Converted && g.category === 'stardust' && g.effectiveLevel === 8
+          ).length;
+          const convCount = Math.min(eligibleLv8Stardust, Math.max(0, Number(char.convert8To7Count) || 0));
+          char.convert8To7Count = convCount;
+          converted8To7Count += convCount;
+
+          let usedConv = 0;
+          char.gems.forEach((g) => {
+            if (!g.isEligible) return;
+
+            if (g.isT3Converted) {
+              detailCounts[8].t3Converted += 1;
+              detailCounts[8].total += 1;
+              totalUnits += UNIT_BY_LEVEL[8];
+              t3ConvertedCount += 1;
+              return;
+            }
+
+            if (g.category === 'stardust' && g.effectiveLevel === 8 && usedConv < convCount) {
+              usedConv += 1;
+              detailCounts[7].stardust += 1;
+              detailCounts[7].total += 1;
+              totalUnits += UNIT_BY_LEVEL[7];
+              return;
+            }
+
+            const lv = g.effectiveLevel;
+            if (detailCounts[lv]) {
+              if (g.category === 'stardust') detailCounts[lv].stardust += 1;
+              else if (g.category === 'annihilation' || g.category === 't3_annihilation') detailCounts[lv].annihilation += 1;
+              else if (g.category === 'blazing' || g.category === 't3_blazing') detailCounts[lv].blazing += 1;
+              detailCounts[lv].total += 1;
+              totalUnits += UNIT_BY_LEVEL[lv] || 0;
+            }
+          });
+        });
+
+        // 인벤토리 수동 추가 짤짤이 보석 합산
+        (state.manualGems || []).forEach((item) => {
+          const qty = Math.max(0, Number(item.count) || 0);
+          if (qty <= 0) return;
+          const isT3Kind = item.kind === 't3_blazing' || item.kind === 't3_annihilation';
+          const gemName =
+            item.kind === 'stardust'
+              ? `${item.level}레벨 광휘의 보석`
+              : item.kind === 'annihilation'
+              ? `${item.level}레벨 작열의 보석`
+              : item.kind === 't3_blazing'
+              ? `${item.level}레벨 멸화의 보석`
+              : item.kind === 't3_annihilation'
+              ? `${item.level}레벨 홍염의 보석`
+              : `${item.level}레벨 겁화의 보석`;
+          const tier = isT3Kind ? 3 : 4;
+
+          for (let i = 0; i < qty; i++) {
+            const g = parseGem({ Name: gemName, Tier: tier, Level: item.level });
+            if (!g.isEligible) continue;
+
+            if (g.isT3Converted) {
+              detailCounts[8].t3Converted += 1;
+              detailCounts[8].total += 1;
+              totalUnits += UNIT_BY_LEVEL[8];
+              t3ConvertedCount += 1;
+            } else {
+              const lv = g.effectiveLevel;
+              if (detailCounts[lv]) {
+                if (g.category === 'stardust') detailCounts[lv].stardust += 1;
+                else if (g.category === 'annihilation' || g.category === 't3_annihilation') detailCounts[lv].annihilation += 1;
+                else if (g.category === 'blazing' || g.category === 't3_blazing') detailCounts[lv].blazing += 1;
+                detailCounts[lv].total += 1;
+                totalUnits += UNIT_BY_LEVEL[lv] || 0;
+              }
+            }
+          }
+        });
+      }
+
+      // pool: 11칸 슬롯에 배분되고 남은 잔여 보석 풀 (초기에는 전체 보유 보석으로 시작해 슬롯 배치 시 차감)
+      const pool = Array(11).fill(0);
+      let initialTotalGems = 0;
+      for (let lv = 1; lv <= 10; lv++) {
+        pool[lv] = detailCounts[lv].total;
+        initialTotalGems += detailCounts[lv].total;
+      }
+
+      const getRemainingPoolCount = (arr) => arr.reduce((acc, v, idx) => (idx >= 1 ? acc + v : acc), 0);
+
+      // 현재 슬롯에 배치된 보석 수 + 잔여 풀 보석 수 기준으로 1~9레벨 보석 합성 후에도 11칸 슬롯 유지 가능 여부 판단
+      const canSynthesizeKeepingElevenSlots = (arr, lowerLv, placedSlotCount) => {
+        if (lowerLv < 1 || lowerLv >= 10) return false;
+        if ((arr[lowerLv] || 0) < 3) return false;
+        const totalGemsNow = placedSlotCount + getRemainingPoolCount(arr);
+        // 초기 보유 보석이 11개 미만인 경우에도 11칸 슬롯 유지 조건을 깨뜨리지 않도록 합성 제한
+        if (initialTotalGems < 11) return false;
+        return (totalGemsNow - 2) >= 11;
+      };
+
+      // 10레벨 보석 3개 -> 성휘 1개 합성 전용 11슬롯 유지 검증
+      // 합성 전 전체 개수 = 슬롯 배치 개수 + 잔여 일반 보석 개수 + 이미 합성한 성휘 개수
+      const canSynthesizeStardustKeepingElevenSlots = (arr, placedSlotCount, alreadySynthesizedStardust) => {
+        if ((arr[10] || 0) < 3) return false;
+        if (initialTotalGems < 11) return false;
+        const totalGemsBefore = placedSlotCount + getRemainingPoolCount(arr) + alreadySynthesizedStardust;
+        return (totalGemsBefore - 2) >= 11;
+      };
+
+      const baseFloorLevel = Math.max(8, state.strategy === 'lv9_first' ? 9 : 8);
+      const slotLevels = Array(11).fill(0);
+      let placedSlotCount = 0;
+
+      // 하위 레벨(1~targetLv-1)을 3->1로 합성해 targetLv 보석 1개를 조달 (남은 슬롯을 채울 수 있는 범위 내에서 우선 합성)
+      const synthesizeUpToLevel = (arr, targetLv) => {
+        if ((arr[targetLv] || 0) > 0) return true;
+        for (let lv = targetLv - 1; lv >= 1; lv--) {
+          while ((arr[lv] || 0) >= 3) {
+            // 목표 레벨(8레벨 이상)을 만드는 경우, 남은 빈 슬롯 수보다 전체 보석이 부족해지더라도 8레벨 달성을 최우선 허용
+            if (targetLv > 8 && !canSynthesizeKeepingElevenSlots(arr, lv, placedSlotCount)) {
+              break;
+            }
+            arr[lv] -= 3;
+            arr[lv + 1] = (arr[lv + 1] || 0) + 1;
+            if ((arr[targetLv] || 0) > 0) return true;
+          }
+        }
+        return (arr[targetLv] || 0) > 0;
+      };
+
+      // 1단계: 이미 보유 중인 8레벨(또는 전략 기준 레벨) 이상 보석부터 슬롯에 우선 배치
+      for (let i = 0; i < 11; i++) {
+        let placedLv = 0;
+        for (let lv = 10; lv >= baseFloorLevel; lv--) {
+          if ((pool[lv] || 0) > 0) {
+            pool[lv] -= 1;
+            placedLv = lv;
+            placedSlotCount += 1;
+            break;
+          }
+        }
+        slotLevels[i] = placedLv;
+      }
+
+      // 2단계: 비어 있는 슬롯이 남아 있다면 하위 보석(1~7레벨)을 3->1로 합성해 최저 8레벨로 채움
+      for (let i = 0; i < 11; i++) {
+        if (slotLevels[i] > 0) continue;
+        if (synthesizeUpToLevel(pool, 8) && (pool[8] || 0) > 0) {
+          pool[8] -= 1;
+          slotLevels[i] = 8;
+          placedSlotCount += 1;
+        }
+      }
+
+      // 3단계: 더 이상 8레벨을 만들 수 없을 때만 남은 7레벨 이하 하위 보석으로 나머지 빈 슬롯 채움
+      for (let i = 0; i < 11; i++) {
+        if (slotLevels[i] > 0) continue;
+        for (let lv = 7; lv >= 1; lv--) {
+          if ((pool[lv] || 0) > 0) {
+            pool[lv] -= 1;
+            slotLevels[i] = lv;
+            placedSlotCount += 1;
+            break;
+          }
+        }
+      }
+
+      // 4단계: 11칸 슬롯을 우선 10레벨로 업그레이드할 수 있는 만큼 끌어올림 (남은 하위 보석 3개 -> 상위 1개)
+      const ensureGemAtLevelForSlot = (arr, targetLv) => {
+        if ((arr[targetLv] || 0) > 0) return true;
+        for (let lv = targetLv - 1; lv >= 1; lv--) {
+          while ((arr[lv] || 0) >= 3 && canSynthesizeKeepingElevenSlots(arr, lv, placedSlotCount)) {
+            arr[lv] -= 3;
+            arr[lv + 1] = (arr[lv + 1] || 0) + 1;
+            if ((arr[targetLv] || 0) > 0) return true;
+          }
+        }
+        return (arr[targetLv] || 0) > 0;
+      };
+
+      for (let i = 0; i < slotLevels.length; i++) {
+        const curLv = slotLevels[i] || 0;
+        if (curLv > 0 && curLv < 10) {
+          if (ensureGemAtLevelForSlot(pool, 10) && pool[10] > 0) {
+            pool[10] -= 1;
+            pool[curLv] = (pool[curLv] || 0) + 1;
+            slotLevels[i] = 10;
+          }
+        }
+      }
+
+      // 5단계: 11칸 슬롯 배치 완료 후 남은 잔여 풀에서 1레벨부터 9레벨까지 3개씩 묶어 상위 레벨로 합성
+      for (let lv = 1; lv < 10; lv++) {
+        while (canSynthesizeKeepingElevenSlots(pool, lv, placedSlotCount)) {
+          pool[lv] -= 3;
+          pool[lv + 1] = (pool[lv + 1] || 0) + 1;
+        }
+      }
+
+      // 슬롯에 배치된 보석의 실제 보석명(광휘, 겁화, 멸화, 작열) 연결
+      const remainingStardustGemPool = {
+        10: detailCounts[10].stardust,
+        9: detailCounts[9].stardust,
+        8: detailCounts[8].stardust,
+      };
+      const remainingBlazingGemPool = {
+        10: detailCounts[10].blazing,
+        9: detailCounts[9].blazing,
+        8: detailCounts[8].blazing,
+      };
+      const remainingAnnihilationGemPool = {
+        10: detailCounts[10].annihilation,
+        9: detailCounts[9].annihilation,
+        8: detailCounts[8].annihilation,
+      };
+      const remainingT3ConvertedPool = detailCounts[8].t3Converted;
+
+      let t3UsedInSlots = 0;
+      const slotMeta = slotLevels.map((lv) => {
+        if (lv <= 0) {
+          return { gemName: '', isStardust: false };
+        }
+        if ((remainingStardustGemPool[lv] || 0) > 0) {
+          remainingStardustGemPool[lv] -= 1;
+          return { gemName: '광휘', isStardust: false };
+        }
+        if ((remainingBlazingGemPool[lv] || 0) > 0) {
+          remainingBlazingGemPool[lv] -= 1;
+          return { gemName: '겁화', isStardust: false };
+        }
+        if ((remainingAnnihilationGemPool[lv] || 0) > 0) {
+          remainingAnnihilationGemPool[lv] -= 1;
+          return { gemName: '작열', isStardust: false };
+        }
+        if (lv === 8 && t3UsedInSlots < remainingT3ConvertedPool) {
+          t3UsedInSlots += 1;
+          return { gemName: '멸화', isStardust: false };
+        }
+        return { gemName: '겁화', isStardust: false };
+      });
+
+      // 4단계: 남은 10레벨 보석 3개마다 성휘 1개를 합성하고,
+      // 슬롯에 갈아끼워 반환된 기존 보석까지 포함해 더 이상 합성할 수 없을 때까지 반복
+      let synthesizedStardustCount = 0;
+      let equippedStardustCount = 0;
+      let leftoverStardustCount = 0;
+
+      while (true) {
+        // 하위 레벨(1~9레벨) 중 3개 이상 모인 보석이 있으면 상위 레벨로 합성
+        for (let lv = 1; lv < 10; lv++) {
+          while (canSynthesizeKeepingElevenSlots(pool, lv, placedSlotCount)) {
+            pool[lv] -= 3;
+            pool[lv + 1] = (pool[lv + 1] || 0) + 1;
+          }
+        }
+
+        // 10레벨 보석 3개 -> 성휘 1개 합성 가능 여부 확인
+        if (!canSynthesizeStardustKeepingElevenSlots(pool, placedSlotCount, leftoverStardustCount)) {
+          break;
+        }
+
+        pool[10] -= 3;
+        synthesizedStardustCount += 1;
+        leftoverStardustCount += 1;
+
+        // 합성된 성휘를 가장 낮은 레벨의 슬롯부터 교체하여 장착 (11칸 슬롯 유지)
+        const placement = placeStardustIntoLowestSlots(slotLevels, slotMeta, leftoverStardustCount);
+        equippedStardustCount += placement.equippedStardustCount;
+        leftoverStardustCount = placement.remainingStardustCount;
+
+        // 슬롯 교체로 빠진 기존 보석은 잔여 보석 풀에 반환해 다음 성휘 합성 재료로 활용
+        slotMeta.forEach((meta) => {
+          if (meta?.replacedGem && meta.replacedGem.level > 0) {
+            const rLv = meta.replacedGem.level;
+            pool[rLv] = (pool[rLv] || 0) + 1;
+            delete meta.replacedGem;
+          }
+        });
+      }
+
+      // 최종 잔여 풀 가치 기록 (성휘 합성 전후 동일 가치 보존)
+      let preSynthesisRemainingUnits = leftoverStardustCount * STARDUST_COST_UNITS;
+      for (let lv = 1; lv <= 10; lv++) {
+        preSynthesisRemainingUnits += (pool[lv] || 0) * (UNIT_BY_LEVEL[lv] || 0);
+      }
+
+      const remainingUnitsAfterStrategy =
+        leftoverStardustCount * STARDUST_COST_UNITS +
+        Array.from({ length: 10 }, (_, idx) => {
+          const lv = idx + 1;
+          return (pool[lv] || 0) * (UNIT_BY_LEVEL[lv] || 0);
+        }).reduce((a, b) => a + b, 0);
+
+      const indexedSlots = slotLevels.map((lv, idx) => ({
+        level: lv,
+        gemName: slotMeta[idx]?.gemName || '',
+        isStardust: Boolean(slotMeta[idx]?.isStardust),
+        units: lv > 0 ? (slotMeta[idx]?.isStardust ? STARDUST_COST_UNITS : UNIT_BY_LEVEL[lv]) : 0,
+      }));
+      indexedSlots.sort((a, b) => {
+        if (Boolean(b.isStardust) !== Boolean(a.isStardust)) {
+          return Number(Boolean(b.isStardust)) - Number(Boolean(a.isStardust));
+        }
+        return b.level - a.level;
+      });
+
+      const slots = indexedSlots.map((item, idx) => ({
+        index: idx + 1,
+        level: item.level,
+        gemName: item.gemName,
+        isStardust: item.isStardust,
+        units: item.units,
+        tierLabel: '4T',
+      }));
+
+      const remainingLv8Equiv = remainingUnitsAfterStrategy / UNIT_BY_LEVEL[8];
+      const remainingLv10Equiv = remainingUnitsAfterStrategy / UNIT_BY_LEVEL[10];
+
+      // 성휘 가치(STARDUST_COST_UNITS)를 포함한 가치 보존 검증
+      const slotUsedUnits = slots.reduce((sum, s) => sum + (s.units || 0), 0);
+      const poolUnitsWithoutStardust = Array.from({ length: 10 }, (_, idx) => {
+        const lv = idx + 1;
+        return (pool[lv] || 0) * (UNIT_BY_LEVEL[lv] || 0);
+      }).reduce((a, b) => a + b, 0);
+      const leftoverStardustUnits = leftoverStardustCount * STARDUST_COST_UNITS;
+      const expectedRemainingUnits = totalUnits - slotUsedUnits;
+
+      const baseVerification = verifyRemainingGemCalculation({
+        totalUnits,
+        preSynthesisRemainingUnits,
+        slotLevels,
+        remainingPool: pool,
+        remainingUnitsAfterStrategy: poolUnitsWithoutStardust,
+        remainingLv8Equiv: poolUnitsWithoutStardust / UNIT_BY_LEVEL[8],
+        remainingLv10Equiv: poolUnitsWithoutStardust / UNIT_BY_LEVEL[10],
+      });
+
+      const verification = {
+        ...baseVerification,
+        isValid:
+          totalUnits === slotUsedUnits + poolUnitsWithoutStardust + leftoverStardustUnits &&
+          poolUnitsWithoutStardust + leftoverStardustUnits === expectedRemainingUnits &&
+          Math.abs(remainingLv8Equiv - expectedRemainingUnits / UNIT_BY_LEVEL[8]) < 1e-9 &&
+          Math.abs(remainingLv10Equiv - expectedRemainingUnits / UNIT_BY_LEVEL[10]) < 1e-9,
+        slotUsedUnits,
+        expectedRemainingUnits,
+        leftoverStardustCount,
+        leftoverStardustUnits,
+      };
+
+      // 최종 보유 목록 기준 동기화 값:
+      // - 완성된 성휘 개수 = 실제 합성된 성휘 개수(equippedStardustCount + leftoverStardustCount)
+      // - 슬롯에 장착된 성휘 개수 = equippedStardustCount
+      // - 잔여 성휘 개수 = leftoverStardustCount
+      // - 잔여 10레벨 보석 개수 = pool[10]
+      // - 전체 잔여 보석 개수 = leftoverStardustCount + sum(pool[1..10])
+      const completedStardust = equippedStardustCount + leftoverStardustCount;
+      const remainingLv10Count = pool[10] || 0;
+      const totalRemainingGemCount =
+        leftoverStardustCount +
+        Array.from({ length: 10 }, (_, idx) => pool[idx + 1] || 0).reduce((a, b) => a + b, 0);
+
+      const currentCycleProgressUnits = remainingUnitsAfterStrategy % STARDUST_COST_UNITS;
+      const neededUnitsForNextStardust = Math.max(0, STARDUST_COST_UNITS - currentCycleProgressUnits);
+      const needLv10ForNext = neededUnitsForNextStardust / UNIT_BY_LEVEL[10];
+      const needLv8ForNext = neededUnitsForNextStardust / UNIT_BY_LEVEL[8];
+      const progressPct = (currentCycleProgressUnits / STARDUST_COST_UNITS) * 100;
+
+      const totalLv10Equiv = totalUnits / UNIT_BY_LEVEL[10];
+      const totalLv8Equiv = totalUnits / UNIT_BY_LEVEL[8];
+
+      return {
+        detailCounts,
+        totalUnits,
+        totalLv10Equiv,
+        totalLv8Equiv,
+        t3ConvertedCount,
+        converted8To7Count,
+        slots,
+        remainingPool: pool,
+        remainingUnitsAfterStrategy,
+        remainingLv8Equiv,
+        remainingLv10Equiv,
+        completedStardust,
+        equippedStardustCount,
+        leftoverStardustCount,
+        remainingLv10Count,
+        totalRemainingGemCount,
+        needLv10ForNext,
+        needLv8ForNext,
+        progressPct,
+        verification,
+      };
+    }
+
+    /**
+     * 화면 전체 렌더링
+     */
+    function recalculateAndRender() {
+      const m = computeMetrics();
+
+      if (els.statCompletedStardust) els.statCompletedStardust.textContent = `완성된 성휘 ${m.completedStardust}개`;
+      if (els.statStardustProgressText) els.statStardustProgressText.textContent = `${m.progressPct.toFixed(1)}%`;
+      if (els.statStardustProgressBar) els.statStardustProgressBar.style.width = `${Math.min(100, Math.max(0, m.progressPct))}%`;
+
+      if (els.statTotalLv10Equiv) els.statTotalLv10Equiv.textContent = m.totalLv10Equiv.toFixed(2);
+      if (els.statTotalUnitsSub) {
+        els.statTotalUnitsSub.textContent = `유효 4티어 환산 ${m.totalLv8Equiv.toFixed(0)}개 (총 ${m.totalUnits.toLocaleString()}단위)`;
+      }
+
+      if (els.statConvertedCount) els.statConvertedCount.textContent = `${m.t3ConvertedCount + m.converted8To7Count}`;
+      if (els.statConvertedSub) {
+        els.statConvertedSub.textContent = `3T 치환 ${m.t3ConvertedCount}개 · 8광휘→7레벨 ${m.converted8To7Count}개`;
+      }
+
+      if (els.statNextStardustNeed) els.statNextStardustNeed.textContent = `10레벨 ${m.needLv10ForNext.toFixed(2)}개`;
+      if (els.statNextStardustSub) els.statNextStardustSub.textContent = `8레벨(3T 10Lv) 약 ${m.needLv8ForNext.toFixed(2)}개 필요`;
+
+      const countByLv = { 10: 0, 9: 0, 8: 0, 0: 0 };
+      let stardustSlotCount = 0;
+      if (els.elevenSlotGrid) {
+        const renderGemSocket = (slot) => {
+          const lv = slot ? slot.level : 0;
+          const isStardust = Boolean(slot && slot.isStardust && lv > 0);
+          const gemName = lv > 0 ? (slot?.gemName || '겁화') : '';
+          countByLv[lv] = (countByLv[lv] || 0) + 1;
+          if (isStardust) stardustSlotCount += 1;
+          const levelLine = isStardust ? '성휘' : lv > 0 ? `${lv}레벨` : '빈 슬롯';
+          const subtitleLine = isStardust ? `장착 성휘 (${lv}레벨 기준)` : lv > 0 ? `${lv}레벨 ${gemName}` : '0레벨';
+
+          const socketStyle =
+            lv === 0
+              ? 'bg-slate-50 dark:bg-slate-800/70 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700'
+              : isStardust
+              ? 'bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-700'
+              : 'bg-indigo-50/80 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-200 border-indigo-200 dark:border-indigo-800';
+
+          const labelColor = isStardust
+            ? 'text-rose-700 dark:text-rose-300 font-bold'
+            : 'text-slate-700 dark:text-slate-200 font-semibold';
+
+          return `
+            <div class="flex flex-col items-center gap-1.5" title="슬롯 #${slot ? slot.index : '-'} · ${lv > 0 ? `${subtitleLine} (${slot.units.toLocaleString()}단위)` : '미배치'}">
+              <div class="w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-full ${socketStyle} border-2 shadow-2xs flex flex-col items-center justify-center leading-tight px-1 text-center transition">
+                <span class="text-[11px] sm:text-xs font-extrabold">${levelLine}</span>
+                ${!isStardust && gemName ? `<span class="text-[11px] sm:text-xs font-bold tracking-tight mt-0.5">${gemName}</span>` : ''}
+              </div>
+              <div class="text-xs tracking-tight ${labelColor}">${subtitleLine}</div>
+            </div>
+          `;
+        };
+
+        const s = m.slots;
+        els.elevenSlotGrid.innerHTML = `
+          <div class="w-full flex items-center justify-between px-2 sm:px-6">
+            <div class="flex items-center gap-3 sm:gap-5">
+              ${renderGemSocket(s[0])}
+              ${renderGemSocket(s[1])}
+            </div>
+            <div class="flex items-center gap-3 sm:gap-5">
+              ${renderGemSocket(s[2])}
+              ${renderGemSocket(s[3])}
+            </div>
+          </div>
+
+          <div class="w-full flex items-center justify-center gap-4 sm:gap-7">
+            ${renderGemSocket(s[4])}
+            ${renderGemSocket(s[5])}
+            ${renderGemSocket(s[6])}
+          </div>
+
+          <div class="w-full flex items-center justify-between px-2 sm:px-6">
+            <div class="flex items-center gap-3 sm:gap-5">
+              ${renderGemSocket(s[7])}
+              ${renderGemSocket(s[8])}
+            </div>
+            <div class="flex items-center gap-3 sm:gap-5">
+              ${renderGemSocket(s[9])}
+              ${renderGemSocket(s[10])}
+            </div>
+          </div>
+        `;
+      }
+
+      if (els.slotSummaryBadge) {
+        const equippedStardust = m.equippedStardustCount ?? stardustSlotCount;
+        const stardustPart = equippedStardust > 0 ? ` · 슬롯 성휘 ${equippedStardust}개` : '';
+        els.slotSummaryBadge.textContent = `10레벨 ${countByLv[10]}개 + 9레벨 ${countByLv[9]}개 + 8레벨 ${countByLv[8]}개 (총 11칸)${stardustPart}`;
+      }
+
+      document.querySelectorAll('.strategy-btn').forEach((btn) => {
+        const isActive = btn.dataset.strategy === state.strategy;
+        btn.className = isActive
+          ? 'strategy-btn px-3.5 py-2 rounded-xl text-xs font-bold bg-brand text-white border border-brand shadow-2xs transition cursor-pointer'
+          : 'strategy-btn px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer';
+      });
+
+      if (els.needLv10Badge) els.needLv10Badge.textContent = `10레벨 ${m.needLv10ForNext.toFixed(2)}개`;
+      if (els.needLv8Badge) els.needLv8Badge.textContent = `8레벨(3T 10Lv) ${m.needLv8ForNext.toFixed(2)}개`;
+      if (els.remainingGemBadge) {
+        const leftoverChips = [];
+        if ((m.leftoverStardustCount || 0) > 0) {
+          leftoverChips.push(`성휘 ${m.leftoverStardustCount}개`);
+        }
+        for (let lv = 10; lv >= 1; lv--) {
+          const cnt = m.remainingPool?.[lv] || 0;
+          if (cnt > 0) leftoverChips.push(`${lv}레벨 ${cnt}개`);
+        }
+        const leftoverDetailText = leftoverChips.length ? ` [${leftoverChips.join(', ')}]` : '';
+        els.remainingGemBadge.textContent = `잔여 보석(총 ${m.totalRemainingGemCount}개 · 10Lv ${m.remainingLv10Count}개): 8레벨 ${m.remainingLv8Equiv.toFixed(2)}개 (10레벨 ${m.remainingLv10Equiv.toFixed(2)}개 / ${m.remainingUnitsAfterStrategy.toLocaleString()}단위)${leftoverDetailText}`;
+      }
+
+      if (els.gemBreakdownTableBody) {
+        const rows = [];
+        for (let lv = 10; lv >= 1; lv--) {
+          const d = m.detailCounts[lv];
+          const lv10Contrib = ((d.total * (UNIT_BY_LEVEL[lv] || 0)) / UNIT_BY_LEVEL[10]).toFixed(2);
+          rows.push(`
+            <tr class="${d.total === 0 ? 'opacity-50' : ''}">
+              <td class="py-2.5 px-3 font-bold">${lv}레벨</td>
+              <td class="py-2.5 px-3 text-right font-extrabold">${d.total}개</td>
+              <td class="py-2.5 px-3 text-right text-rose-600 dark:text-rose-400 font-semibold">${d.blazing}개</td>
+              <td class="py-2.5 px-3 text-right text-sky-600 dark:text-sky-400 font-semibold">${d.annihilation}개</td>
+              <td class="py-2.5 px-3 text-right text-amber-600 dark:text-amber-400 font-semibold">${d.stardust}개</td>
+              <td class="py-2.5 px-3 text-right text-purple-600 dark:text-purple-400 font-semibold">${d.t3Converted}개</td>
+              <td class="py-2.5 px-3 text-right font-bold text-amber-600 dark:text-amber-400">${lv10Contrib}개</td>
+            </tr>
+          `);
+        }
+        els.gemBreakdownTableBody.innerHTML = rows.join('');
+      }
+
+      if (els.extraCharacterAddBar && els.extraCharacterSelect) {
+        const alreadyIncludedNames = new Set((state.characters || []).map((c) => c.name));
+        const availableExtras = (state.extraCandidates || []).filter((c) => !alreadyIncludedNames.has(c.CharacterName));
+
+        if (availableExtras.length > 0) {
+          els.extraCharacterAddBar.classList.remove('hidden');
+          els.extraCharacterAddBar.classList.add('flex');
+          els.extraCharacterSelect.innerHTML = availableExtras
+            .map((c) => {
+              const lv = Number(String(c.ItemAvgLevel || '0').replace(/,/g, '')) || 0;
+              return `<option value="${c.CharacterName}">${c.CharacterName} (Lv.${lv.toFixed(2)})</option>`;
+            })
+            .join('');
+        } else {
+          els.extraCharacterAddBar.classList.add('hidden');
+          els.extraCharacterAddBar.classList.remove('flex');
+          els.extraCharacterSelect.innerHTML = '';
+        }
+      }
+
+      if (els.characterListContainer) {
+        if (!state.characters.length) {
+          els.characterListContainer.innerHTML = `
+            <div class="col-span-full rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-6 text-center text-xs text-slate-500 dark:text-slate-400">
+              원정대 캐릭터를 조회하거나 상단 '샘플 데이터 테스트' 버튼을 눌러 보세요.
+            </div>
+          `;
+        } else {
+          els.characterListContainer.innerHTML = state.characters
+            .map((char, idx) => {
+              const eligibleGems = char.gems.filter((g) => g.isEligible);
+              const lv8StardustTotal = char.gems.filter(
+                (g) => g.isEligible && !g.isT3Converted && g.category === 'stardust' && g.effectiveLevel === 8
+              ).length;
+              const currentConv = Math.min(lv8StardustTotal, Math.max(0, Number(char.convert8To7Count) || 0));
+
+              const summaryChips = eligibleGems
+                .map((g) => {
+                  const kindLabel =
+                    g.category === 'stardust'
+                      ? '광휘'
+                      : g.category === 'blazing'
+                      ? '겁화'
+                      : g.category === 'annihilation'
+                      ? '작열'
+                      : g.category === 't3_blazing'
+                      ? '3T 멸화'
+                      : g.category === 't3_annihilation'
+                      ? '3T 홍염'
+                      : '보석';
+                  const tag = g.isT3Converted
+                    ? `${g.rawLevel}Lv ${g.category === 't3_blazing' ? '멸화' : '홍염'}→4T 8Lv`
+                    : `${g.effectiveLevel}Lv ${kindLabel}`;
+                  return `<span class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[11px] font-medium">${tag}</span>`;
+                })
+                .join('');
+
+              return `
+                <div class="rounded-xl border border-slate-200 dark:border-slate-800 p-4 space-y-3 bg-slate-50/50 dark:bg-slate-800/30">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <div class="text-sm font-bold">${char.name}</div>
+                      <div class="text-[11px] text-slate-500 dark:text-slate-400">${char.server} · Lv.${Number(char.itemAvgLevel || 0).toFixed(2)}</div>
+                    </div>
+                    <span class="px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-brand dark:text-brand-light text-xs font-bold">
+                      유효 ${eligibleGems.length}개
+                    </span>
+                  </div>
+
+                  <div class="flex flex-wrap gap-1 max-h-20 overflow-y-auto">${summaryChips || '<span class="text-xs text-slate-400">장착 보석 없음</span>'}</div>
+
+                  <div class="pt-2 border-t border-slate-200/70 dark:border-slate-700/70 flex items-center justify-between gap-2 text-xs">
+                    <span class="text-slate-600 dark:text-slate-300 font-medium">8광휘(거래불가)→7레벨(거래가능)치환</span>
+                    <input type="number" min="0" max="${lv8StardustTotal}" value="${currentConv}" data-char-index="${idx}" class="char-conv-input w-16 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-2 py-1 text-right font-bold" />
+                  </div>
+                </div>
+              `;
+            })
+            .join('');
+        }
+      }
+
+      if (els.manualGemsList) {
+        const kindLabelMap = {
+          blazing: '4T 겁화',
+          annihilation: '4T 작열',
+          stardust: '4T 광휘',
+          t3_blazing: '3T 멸화',
+          t3_annihilation: '3T 홍염',
+        };
+        if (!state.manualGems || !state.manualGems.length) {
+          els.manualGemsList.innerHTML =
+            '<span class="text-xs text-slate-400">추가된 수동 보석이 없습니다. 위에서 레벨과 개수를 선택해 추가해 보세요.</span>';
+        } else {
+          els.manualGemsList.innerHTML = state.manualGems
+            .map((item, idx) => {
+              const label = `${item.level}레벨 ${kindLabelMap[item.kind] || '겁화'} × ${item.count}개`;
+              return `
+                <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold">
+                  <span>${label}</span>
+                  <button type="button" data-manual-idx="${idx}" aria-label="${label} 삭제" class="remove-manual-gem-btn text-slate-400 hover:text-rose-600 cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                  </button>
+                </span>
+              `;
+            })
+            .join('');
+        }
+      }
+    }
+
+    /**
+     * 이벤트 바인딩
+     */
+    function bindEvents() {
+      els.sampleDataBtn?.addEventListener('click', loadSampleData);
+      els.fetchRosterBtn?.addEventListener('click', fetchRosterFromApi);
+
+      els.closeBannerBtn?.addEventListener('click', () => {
+        els.statusBanner?.classList.add('hidden');
+        els.statusBanner?.classList.remove('flex');
+      });
+
+      els.themeToggleBtn?.addEventListener('click', () => {
+        const isDark = document.documentElement.classList.toggle('dark');
+        if (els.themeIcon) {
+          els.themeIcon.className = isDark ? 'fa-regular fa-sun text-sm' : 'fa-regular fa-moon text-sm';
+        }
+      });
+
+      els.toggleApiKeyBtn?.addEventListener('click', () => {
+        if (!els.apiKeyInput) return;
+        const isPw = els.apiKeyInput.type === 'password';
+        els.apiKeyInput.type = isPw ? 'text' : 'password';
+        if (els.toggleApiKeyIcon) {
+          els.toggleApiKeyIcon.className = isPw ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye';
+        }
+      });
+
+      els.clearApiKeyBtn?.addEventListener('click', () => {
+        localStorage.removeItem(STORAGE_KEY_API);
+        if (els.apiKeyInput) els.apiKeyInput.value = '';
+        showBanner('저장된 API 키를 삭제했습니다.');
+      });
+
+      document.querySelectorAll('.strategy-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.strategy = btn.dataset.strategy || 'lv8_first';
+          recalculateAndRender();
+        });
+      });
+
+      els.characterListContainer?.addEventListener('input', (e) => {
+        const target = e.target;
+        if (target && target.classList.contains('char-conv-input')) {
+          const idx = Number(target.dataset.charIndex);
+          if (state.characters[idx]) {
+            state.simMode = false;
+            state.characters[idx].convert8To7Count = Math.max(0, Number(target.value) || 0);
+            recalculateAndRender();
+          }
+        }
+      });
+
+      els.addManualGemBtn?.addEventListener('click', () => {
+        const kind = els.manualGemKindSelect?.value || 'blazing';
+        const level = Math.min(10, Math.max(1, Number(els.manualGemLevelSelect?.value) || 8));
+        const count = Math.max(1, Number(els.manualGemCountInput?.value) || 1);
+
+        state.simMode = false;
+        const existing = (state.manualGems || []).find((g) => g.kind === kind && g.level === level);
+        if (existing) {
+          existing.count += count;
+        } else {
+          state.manualGems.push({ kind, level, count });
+        }
+        recalculateAndRender();
+      });
+
+      els.manualGemsList?.addEventListener('click', (e) => {
+        const btn = e.target.closest('.remove-manual-gem-btn');
+        if (!btn) return;
+        const idx = Number(btn.dataset.manualIdx);
+        if (!Number.isNaN(idx) && state.manualGems[idx]) {
+          state.simMode = false;
+          state.manualGems.splice(idx, 1);
+          recalculateAndRender();
+        }
+      });
+
+      els.clearManualGemsBtn?.addEventListener('click', () => {
+        state.simMode = false;
+        state.manualGems = [];
+        recalculateAndRender();
+      });
+
+      els.addExtraCharacterBtn?.addEventListener('click', async () => {
+        const targetName = els.extraCharacterSelect?.value || '';
+        if (!targetName) return;
+        if ((state.characters || []).some((c) => c.name === targetName)) {
+          showBanner(`${targetName} 캐릭터는 이미 포함되어 있습니다.`);
+          return;
+        }
+
+        const candidate = (state.extraCandidates || []).find((c) => c.CharacterName === targetName);
+        if (!candidate) return;
+
+        const parseAvg = (val) => Number(String(val || '0').replace(/,/g, '')) || 0;
+        const rawKey = (els.apiKeyInput?.value || '').trim();
+
+        els.addExtraCharacterBtn.disabled = true;
+        els.addExtraCharacterBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>추가 중...';
+
+        try {
+          let parsedGems = [];
+          if (rawKey) {
+            const authHeader = rawKey.toLowerCase().startsWith('bearer ') ? rawKey : `Bearer ${rawKey}`;
+            const res = await fetch(
+              `https://developer-lostark.game.onstove.com/armories/characters/${encodeURIComponent(targetName)}/gems`,
+              { headers: { Authorization: authHeader, accept: 'application/json' } }
+            );
+            if (!res.ok) {
+              throw new Error(`${targetName} 보석 조회 실패 (HTTP ${res.status})`);
+            }
+            const data = await res.json();
+            const rawGems = Array.isArray(data?.Gems) ? data.Gems : [];
+            parsedGems = rawGems.map(parseGem);
+          } else {
+            // 샘플 모드에서 API 키가 없을 때 기본 보석 세트로 추가
+            parsedGems = [
+              parseGem({ Name: '8레벨 겁화의 보석', Tier: 4 }),
+              parseGem({ Name: '8레벨 작열의 보석', Tier: 4 }),
+            ];
+          }
+
+          state.simMode = false;
+          state.characters.push({
+            name: candidate.CharacterName,
+            server: candidate.ServerName || state.rosterMeta?.server || '',
+            itemAvgLevel: parseAvg(candidate.ItemAvgLevel),
+            convert8To7Count: 0,
+            gems: parsedGems,
+          });
+          showBanner(`${targetName} 캐릭터가 원정대 보석 계산에 추가되었습니다.`);
+          recalculateAndRender();
+        } catch (err) {
+          showBanner(err?.message || '추가 캐릭터 보석 조회 중 오류가 발생했습니다.');
+        } finally {
+          els.addExtraCharacterBtn.disabled = false;
+          els.addExtraCharacterBtn.innerHTML = '<i class="fa-solid fa-user-plus mr-1"></i>캐릭터 추가';
+        }
+      });
+
+      els.tabSimBtn?.addEventListener('click', () => {
+        state.activeTab = 'sim';
+        state.simMode = true;
+        els.simPanel?.classList.remove('hidden');
+        els.rosterPanel?.classList.add('hidden');
+        els.tabSimBtn.className = 'px-4 py-2 rounded-xl text-xs font-bold bg-brand text-white transition cursor-pointer';
+        els.tabRosterBtn.className = 'px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer';
+        recalculateAndRender();
+      });
+
+      [els.simLv10Input, els.simLv9Input, els.simLv8Input, els.simT3Lv10Input].forEach((input) => {
+        input?.addEventListener('input', () => {
+          state.simMode = true;
+          state.simValues = {
+            lv10: Number(els.simLv10Input?.value) || 0,
+            lv9: Number(els.simLv9Input?.value) || 0,
+            lv8: Number(els.simLv8Input?.value) || 0,
+            t3Lv10: Number(els.simT3Lv10Input?.value) || 0,
+          };
+          recalculateAndRender();
+        });
+      });
+
+      els.loadFromApiToSimBtn?.addEventListener('click', () => {
+        state.simMode = false;
+        const m = computeMetrics();
+        state.simMode = true;
+        state.simValues = {
+          lv10: m.detailCounts[10].total,
+          lv9: m.detailCounts[9].total,
+          lv8: m.detailCounts[8].blazing,
+          t3Lv10: m.detailCounts[8].t3Converted,
+        };
+        if (els.simLv10Input) els.simLv10Input.value = String(state.simValues.lv10);
+        if (els.simLv9Input) els.simLv9Input.value = String(state.simValues.lv9);
+        if (els.simLv8Input) els.simLv8Input.value = String(state.simValues.lv8);
+        if (els.simT3Lv10Input) els.simT3Lv10Input.value = String(state.simValues.t3Lv10);
+        recalculateAndRender();
+      });
+
+      els.resetSimBtn?.addEventListener('click', () => {
+        state.simValues = { lv10: 0, lv9: 0, lv8: 0, t3Lv10: 0 };
+        if (els.simLv10Input) els.simLv10Input.value = '0';
+        if (els.simLv9Input) els.simLv9Input.value = '0';
+        if (els.simLv8Input) els.simLv8Input.value = '0';
+        if (els.simT3Lv10Input) els.simT3Lv10Input.value = '0';
+        recalculateAndRender();
+      });
+
+      els.copyResultBtn?.addEventListener('click', () => {
+        const m = computeMetrics();
+        const text = [
+          `10레벨 환산 총합: ${m.totalLv10Equiv.toFixed(2)}개`,
+          `완성된 성휘: ${m.completedStardust}개`,
+          `잔여 보석: 8레벨 ${m.remainingLv8Equiv.toFixed(2)}개 (10레벨 ${m.remainingLv10Equiv.toFixed(2)}개 / ${m.remainingUnitsAfterStrategy.toLocaleString()}단위)`,
+        ].join('\n');
+        const tempArea = document.createElement('textarea');
+        tempArea.value = text;
+        document.body.appendChild(tempArea);
+        tempArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempArea);
+        showBanner('계산 결과와 잔여 보석 요약이 클립보드에 복사되었습니다.');
+      });
+    }
+
+    /**
+     * 초기 실행
+     */
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedKey = localStorage.getItem(STORAGE_KEY_API);
+      const savedChar = localStorage.getItem(STORAGE_KEY_CHAR);
+      if (savedKey && els.apiKeyInput) els.apiKeyInput.value = savedKey;
+      if (savedChar && els.characterNameInput) els.characterNameInput.value = savedChar;
+
+      bindEvents();
+      recalculateAndRender();
+    });
+  </script>
+</body>
+</html>
